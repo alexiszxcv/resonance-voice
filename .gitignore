@@ -32,3 +32,12 @@ temp_*.webm
 
 # Session data
 session_data.json
+
+# Backups
+backups/
+
+# User feedback
+feedback.json
+
+# Performance metrics
+performance.json
