@@ -59,6 +59,7 @@ Integrated sound healing with scientifically-selected frequencies:
 - **Local Processing**: All sensitive data processed client-side
 - **API Key Isolation**: Secure environment variable management
 - **Session Anonymity**: Pattern tracking without personal identifiers
+- **Rate Limiting**: 100 requests per 15-minute window per IP
 
 ---
 
@@ -90,6 +91,7 @@ Integrated sound healing with scientifically-selected frequencies:
 - npm 7+
 - Anthropic API key
 - OpenAI API key
+- Docker & Docker Compose (optional, for containerized deployment)
 
 ### Installation
 ```bash
@@ -120,6 +122,39 @@ cd frontend && npm start
 
 ---
 
+## Production Deployment
+
+### Docker Deployment
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Or run individually
+docker build -t resonance-backend ./backend
+docker build -t resonance-frontend ./frontend
+docker run -p 3001:3001 resonance-backend
+docker run -p 3000:3000 resonance-frontend
+```
+
+### Health Checks
+- **GET /health** - Service health status
+- **GET /metrics** - Performance metrics
+- Docker health checks included
+
+### Backup & Maintenance
+```bash
+# Create session data backup
+cd backend && npm run backup
+
+# Run tests
+npm test
+
+# View performance metrics
+curl http://localhost:3001/metrics
+```
+
+---
+
 ## Technical Deep Dive
 
 ### AI Integration Architecture
@@ -147,9 +182,9 @@ The system uses sophisticated pattern recognition to identify intervention oppor
 
 ```javascript
 const FREQUENCY_MAP = {
-  anxiety: { hz: 432, description: "slows racing thoughts", keywords: ['anxious', 'panic', 'overwhelm'] },
+  anxiety: { hz: 432, description: "slows racing thoughts", keywords: ['anxious', 'panic', 'overwhelm', 'racing'] },
   fear: { hz: 396, description: "grounds fear", keywords: ['scared', 'afraid', 'fear'] },
-  numb: { hz: 528, description: "gently wakes things up", keywords: ['numb', 'empty', 'disconnected'] },
+  numb: { hz: 528, description: "gently wakes things up", keywords: ['numb', 'empty', 'nothing', 'disconnected'] },
   stuck: { hz: 417, description: "helps shift stuck feelings", keywords: ['stuck', 'trapped', 'frozen'] },
   anger: { hz: 639, description: "settles frustration", keywords: ['angry', 'frustrated', 'irritated'] }
 };
@@ -174,6 +209,27 @@ const FREQUENCY_MAP = {
 ---
 
 ## API Reference
+
+### REST Endpoints
+
+#### Health & Monitoring
+- **GET /health** - Service health check
+- **GET /metrics** - Performance statistics
+- **POST /feedback** - User feedback submission
+
+#### Request/Response Examples
+```bash
+# Health check
+curl http://localhost:3001/health
+
+# Performance metrics
+curl http://localhost:3001/metrics
+
+# Submit feedback
+curl -X POST http://localhost:3001/feedback \
+  -H "Content-Type: application/json" \
+  -d '{"rating": 5, "feedback": "Great app!", "userId": "user123"}'
+```
 
 ### WebSocket Protocol
 
@@ -209,6 +265,34 @@ const FREQUENCY_MAP = {
 // Frequency therapy
 { type: 'frequency_offer', frequency: 432, description: 'slows racing thoughts' }
 ```
+
+---
+
+## Development & Testing
+
+### Running Tests
+```bash
+# Backend tests
+cd backend && npm test
+
+# Frontend tests
+cd frontend && npm test
+
+# End-to-end testing
+npm run test:e2e  # (if configured)
+```
+
+### Code Quality
+- ESLint configuration for consistent code style
+- Prettier for automatic code formatting
+- Jest for unit testing
+- GitHub Actions CI/CD pipeline
+
+### Performance Monitoring
+- Real-time response time tracking
+- Memory usage monitoring
+- System resource metrics
+- User session analytics
 
 ---
 
@@ -258,6 +342,14 @@ PORT=3001
 - Physical intervention system
 - Frequency therapy integration
 - Session tracking and analytics
+- Docker containerization
+- CI/CD pipeline with GitHub Actions
+- Performance monitoring and metrics
+- User feedback system
+- Automated backup system
+- Rate limiting and security
+- Health checks and monitoring
+- Comprehensive testing framework
 
 ### Phase 2: Enhanced Features 🔄
 - Multi-language support
@@ -270,6 +362,102 @@ PORT=3001
 - Clinician dashboard
 - Research data collection
 - Institutional deployment tools
+
+---
+
+## Contributing
+
+### Development Setup
+```bash
+git clone https://github.com/alexiszxcv/resonance-voice.git
+cd resonance-voice-agent
+npm install
+npm run dev
+```
+
+### Code Standards
+- **TypeScript Migration**: Gradual migration to type safety
+- **Testing**: Comprehensive unit and integration tests
+- **Documentation**: Inline code documentation
+- **Performance**: Optimized for real-time processing
+
+### Areas of Impact
+- **Algorithm Improvements**: Enhanced intervention detection
+- **New Interventions**: Evidence-based therapeutic techniques
+- **Accessibility**: Improved usability for diverse populations
+- **Research Integration**: Clinical validation and outcome studies
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### Audio Context Issues
+- **Browser Autoplay Policy**: Click anywhere on the page first to enable audio
+- **HTTPS Requirement**: Audio recording requires secure context in production
+- **Permission Denied**: Grant microphone permissions in browser settings
+
+#### WebSocket Connection Failed
+- Ensure backend server is running on port 3001
+- Check firewall settings for WebSocket connections
+- Verify correct WebSocket URL configuration
+
+#### API Rate Limiting
+- Free tier limits: 100 requests per 15 minutes
+- Upgrade API plans for higher limits
+- Implement request queuing for high-traffic scenarios
+
+#### Performance Issues
+- Monitor `/metrics` endpoint for performance statistics
+- Check system resources (CPU, memory)
+- Review WebSocket connection stability
+
+### Debug Mode
+```bash
+# Enable verbose logging
+DEBUG=true npm run dev
+
+# View performance metrics
+curl http://localhost:3001/metrics
+
+# Check health status
+curl http://localhost:3001/health
+```
+
+---
+
+## License & Ethics
+
+### Open Source Commitment
+Licensed under MIT License - promoting accessible mental health technology for all.
+
+### Ethical Guidelines
+- **Do No Harm**: All interventions based on established therapeutic practices
+- **Privacy First**: Zero data collection without explicit consent
+- **Clinical Boundaries**: Clear disclaimers about not replacing professional care
+- **Transparency**: Open about AI limitations and appropriate use cases
+
+### Responsible AI
+- **Bias Mitigation**: Regular audits for conversational fairness
+- **Safety Protocols**: Crisis detection and appropriate resource referral
+- **User Autonomy**: Users maintain full control over their experience
+- **Continuous Improvement**: Regular updates based on user feedback and research
+
+---
+
+## Support & Community
+
+### Getting Help
+- **Documentation**: Comprehensive guides and API references
+- **GitHub Issues**: Bug reports and feature requests
+- **Community**: Discussion forums for user experiences
+- **Professional Support**: Integration guides for clinical settings
+
+### Professional Integration
+- **Clinician Resources**: Training materials and implementation guides
+- **Research Partnerships**: Collaboration opportunities for validation studies
+- **Institutional Deployment**: Enterprise solutions for healthcare organizations
 
 ---
 
