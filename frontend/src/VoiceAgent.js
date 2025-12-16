@@ -74,6 +74,22 @@ function VoiceAgent() {
     };
   }, [physicalIntervention]);
 
+  // Initialize audio context on first user interaction
+  const initAudioContext = async () => {
+    if (!audioContextRef.current) {
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+
+    if (audioContextRef.current.state === 'suspended') {
+      try {
+        await audioContextRef.current.resume();
+        console.log('Audio context initialized');
+      } catch (error) {
+        console.error('Failed to initialize audio context:', error);
+      }
+    }
+  };
+
   // Initialize
   useEffect(() => {
     connectWebSocket();
@@ -237,15 +253,14 @@ function VoiceAgent() {
     setInterventionInstructions('');
   };
 
-  const acceptFrequency = () => {
+  const acceptFrequency = async () => {
     if (!frequencyOffer) return;
-    
+
     console.log('Accepting frequency:', frequencyOffer.hz);
-    playFrequency(frequencyOffer.hz);
-    setFrequencyActive(true);
-    setCurrentFrequency(frequencyOffer.hz);
+    await playFrequency(frequencyOffer.hz);
+    // frequencyActive and currentFrequency are now set in playFrequency
     setFrequencyOffer(null);
-    
+
     wsRef.current.send(JSON.stringify({
       type: 'sound_choice',
       enabled: true,
@@ -263,44 +278,53 @@ function VoiceAgent() {
     }));
   };
 
-  const playFrequency = (hz) => {
+  const playFrequency = async (hz) => {
     console.log('Playing frequency:', hz);
-    
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+
+    try {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      const ctx = audioContextRef.current;
+
+      // Resume if suspended (required by browser autoplay policies)
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
+      // Stop any existing frequency
+      stopFrequency();
+
+      const masterGain = ctx.createGain();
+      masterGain.gain.value = 0.2;
+      masterGain.connect(ctx.destination);
+      frequencyGainRef.current = masterGain;
+
+      const leftOsc = ctx.createOscillator();
+      const rightOsc = ctx.createOscillator();
+      const merger = ctx.createChannelMerger(2);
+
+      leftOsc.frequency.value = hz;
+      rightOsc.frequency.value = hz + 8; // Binaural beat
+
+      leftOsc.connect(merger, 0, 0);
+      rightOsc.connect(merger, 0, 1);
+      merger.connect(masterGain);
+
+      leftOsc.start();
+      rightOsc.start();
+
+      frequencyOscillatorsRef.current = [leftOsc, rightOsc];
+      setFrequencyActive(true);
+      setCurrentFrequency(hz);
+
+      console.log('Frequency started successfully');
+    } catch (error) {
+      console.error('Error playing frequency:', error);
+      setFrequencyActive(false);
+      setCurrentFrequency(null);
     }
-
-    // Resume if suspended
-    if (audioContextRef.current.state === 'suspended') {
-      audioContextRef.current.resume();
-    }
-
-    // Stop any existing frequency
-    stopFrequency();
-
-    const ctx = audioContextRef.current;
-    const masterGain = ctx.createGain();
-    masterGain.gain.value = 0.2;
-    masterGain.connect(ctx.destination);
-    frequencyGainRef.current = masterGain;
-
-    const leftOsc = ctx.createOscillator();
-    const rightOsc = ctx.createOscillator();
-    const merger = ctx.createChannelMerger(2);
-
-    leftOsc.frequency.value = hz;
-    rightOsc.frequency.value = hz + 8; // Binaural beat
-
-    leftOsc.connect(merger, 0, 0);
-    rightOsc.connect(merger, 0, 1);
-    merger.connect(masterGain);
-
-    leftOsc.start();
-    rightOsc.start();
-
-    frequencyOscillatorsRef.current = [leftOsc, rightOsc];
-    
-    console.log('Frequency started');
   };
 
   const stopFrequency = () => {
@@ -317,6 +341,9 @@ function VoiceAgent() {
 
   const startRecording = async () => {
     try {
+      // Initialize audio context on first interaction
+      await initAudioContext();
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       
       mediaRecorderRef.current = new MediaRecorder(stream, {
@@ -829,6 +856,93 @@ function VoiceAgent() {
           <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.875rem', textAlign: 'center' }}>
             {isRecording ? 'Listening...' : isSpeaking ? 'Speaking...' : physicalIntervention ? 'Doing the exercise...' : 'Hold to speak'}
           </p>
+
+          {/* Manual Frequency Controls */}
+          {!frequencyActive && !physicalIntervention && conversationHistory.length > 0 && (
+            <div style={{ marginTop: '1rem' }}>
+              <p style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '0.75rem', textAlign: 'center', marginBottom: '0.5rem' }}>
+                Need some sound therapy?
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button
+                  onClick={async () => {
+                    await initAudioContext();
+                    playFrequency(432);
+                  }}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    opacity: 0.8
+                  }}
+                  title="432Hz - Slows racing thoughts"
+                >
+                  432Hz
+                </button>
+                <button
+                  onClick={async () => {
+                    await initAudioContext();
+                    playFrequency(396);
+                  }}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    opacity: 0.8
+                  }}
+                  title="396Hz - Grounds fear"
+                >
+                  396Hz
+                </button>
+                <button
+                  onClick={async () => {
+                    await initAudioContext();
+                    playFrequency(528);
+                  }}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    border: 'none',
+                    borderRadius: '9999px',
+                    color: 'white',
+                    fontSize: '0.75rem',
+                    cursor: 'pointer',
+                    opacity: 0.8
+                  }}
+                  title="528Hz - Gently wakes things up"
+                >
+                  528Hz
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Stop Frequency Button */}
+          {frequencyActive && (
+            <button
+              onClick={stopFrequency}
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'rgba(239, 68, 68, 0.8)',
+                border: 'none',
+                borderRadius: '9999px',
+                color: 'white',
+                fontSize: '0.75rem',
+                cursor: 'pointer',
+                marginTop: '0.5rem'
+              }}
+            >
+              Stop Sound ({currentFrequency}Hz)
+            </button>
+          )}
 
           {conversationHistory.length > 2 && !physicalIntervention && !showPostSession && (
             <button
